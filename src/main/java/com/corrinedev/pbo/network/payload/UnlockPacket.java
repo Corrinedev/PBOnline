@@ -25,6 +25,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.LinkedList;
+import java.util.Set;
 
 public record UnlockPacket(String itemId, String prog) implements CustomPacketPayload {
     public static final Type<UnlockPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(PBO.ID, "unlock_packet"));
@@ -55,7 +56,13 @@ public record UnlockPacket(String itemId, String prog) implements CustomPacketPa
                         for (TradeLoader.ItemInfo info : infos) {
                             if(info.item().equals(packet.itemId)) {
                                 if(info.req() > sv.getPersistentData().getInt(info.type().toString())) {sv.displayClientMessage(Component.literal("You don't have enough " + info.type().toString()), true); return;}
-                                if(info.unlocked().contains(sv.getStringUUID())){sv.addItem(new ItemStack(sv.getServer().registryAccess().registry(Registries.ITEM).get().get(ResourceLocation.parse(info.item())))); return;}
+                                if(info.unlocked().contains(sv.getStringUUID())){
+                                    if(sv.getInventory().hasAnyOf(Set.of(sv.getServer().registryAccess().registry(Registries.ITEM).get().get(ResourceLocation.parse(info.item()))))) {
+                                        sv.addItem(new ItemStack(sv.getServer().registryAccess().registry(Registries.ITEM).get().get(ResourceLocation.parse(info.item()))));
+                                    } else {sv.displayClientMessage(Component.literal("You already have one of those, put it on a gun if its an attachment!"), false);}
+
+                                    return;
+                                }
                                 info.unlocked().add(sv.getStringUUID());
                             }
                             arr.add(gson.toJsonTree(info, TradeLoader.ItemInfo.class));
